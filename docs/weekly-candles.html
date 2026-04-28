@@ -13,6 +13,23 @@
       --text: #1b1f24;
       --muted: #667085;
       --border: #d9dee7;
+      --grid: #eef1f5;
+      --button-bg: #ffffff;
+      --button-hover: #eef1f5;
+      --error: #9f1239;
+    }
+
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #0d1117;
+      --panel: #161b22;
+      --text: #f0f6fc;
+      --muted: #8b949e;
+      --border: #30363d;
+      --grid: #21262d;
+      --button-bg: #21262d;
+      --button-hover: #30363d;
+      --error: #ff7b72;
     }
 
     * {
@@ -48,10 +65,33 @@
       line-height: 1.25;
     }
 
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
     .meta {
       color: var(--muted);
       font-size: 14px;
       line-height: 1.5;
+    }
+
+    button {
+      min-width: 92px;
+      min-height: 36px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--button-bg);
+      color: var(--text);
+      cursor: pointer;
+      font: inherit;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    button:hover {
+      background: var(--button-hover);
     }
 
     #chart {
@@ -65,7 +105,7 @@
 
     .error {
       margin-top: 12px;
-      color: #9f1239;
+      color: var(--error);
       font-size: 14px;
       white-space: pre-wrap;
     }
@@ -84,8 +124,18 @@
         min-height: 360px;
         height: 66vh;
       }
+
+      .toolbar {
+        width: 100%;
+        justify-content: space-between;
+      }
     }
   </style>
+  <script>
+    const storedTheme = localStorage.getItem("theme");
+    const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.theme = storedTheme || systemTheme;
+  </script>
 </head>
 <body>
   <main>
@@ -94,7 +144,10 @@
         <h1>JobKorea Weekly Candles</h1>
         <div class="meta" id="meta">Loading data...</div>
       </div>
-      <div class="meta">Source: data/job_post_counts.csv</div>
+      <div class="toolbar">
+        <div class="meta">Source: data/job_post_counts.csv</div>
+        <button type="button" id="theme-toggle" aria-label="Toggle dark mode">Dark</button>
+      </div>
     </header>
     <div id="chart"></div>
     <div class="error" id="error"></div>
@@ -105,6 +158,69 @@
     const meta = document.getElementById("meta");
     const errorBox = document.getElementById("error");
     const chartBox = document.getElementById("chart");
+    const themeToggle = document.getElementById("theme-toggle");
+    let chart;
+
+    function currentTheme() {
+      return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    }
+
+    function chartTheme(theme) {
+      if (theme === "dark") {
+        return {
+          background: "#161b22",
+          text: "#f0f6fc",
+          grid: "#21262d",
+          border: "#30363d",
+        };
+      }
+
+      return {
+        background: "#ffffff",
+        text: "#1b1f24",
+        grid: "#eef1f5",
+        border: "#d9dee7",
+      };
+    }
+
+    function updateThemeButton() {
+      themeToggle.textContent = currentTheme() === "dark" ? "Light" : "Dark";
+    }
+
+    function applyChartTheme() {
+      if (!chart) {
+        return;
+      }
+
+      const theme = chartTheme(currentTheme());
+      chart.applyOptions({
+        layout: {
+          background: { color: theme.background },
+          textColor: theme.text,
+          fontFamily: "Arial, Apple SD Gothic Neo, Malgun Gothic, sans-serif",
+        },
+        grid: {
+          vertLines: { color: theme.grid },
+          horzLines: { color: theme.grid },
+        },
+        rightPriceScale: {
+          borderColor: theme.border,
+        },
+        timeScale: {
+          borderColor: theme.border,
+        },
+      });
+    }
+
+    themeToggle.addEventListener("click", () => {
+      const nextTheme = currentTheme() === "dark" ? "light" : "dark";
+      document.documentElement.dataset.theme = nextTheme;
+      localStorage.setItem("theme", nextTheme);
+      updateThemeButton();
+      applyChartTheme();
+    });
+
+    updateThemeButton();
 
     function parseCsv(text) {
       const lines = text.trim().split(/\r?\n/);
@@ -160,21 +276,22 @@
     }
 
     function renderChart(candles) {
-      const chart = LightweightCharts.createChart(chartBox, {
+      const theme = chartTheme(currentTheme());
+      chart = LightweightCharts.createChart(chartBox, {
         layout: {
-          background: { color: "#ffffff" },
-          textColor: "#1b1f24",
+          background: { color: theme.background },
+          textColor: theme.text,
           fontFamily: "Arial, Apple SD Gothic Neo, Malgun Gothic, sans-serif",
         },
         grid: {
-          vertLines: { color: "#eef1f5" },
-          horzLines: { color: "#eef1f5" },
+          vertLines: { color: theme.grid },
+          horzLines: { color: theme.grid },
         },
         rightPriceScale: {
-          borderColor: "#d9dee7",
+          borderColor: theme.border,
         },
         timeScale: {
-          borderColor: "#d9dee7",
+          borderColor: theme.border,
           timeVisible: true,
         },
         crosshair: {
