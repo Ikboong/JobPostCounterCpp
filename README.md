@@ -54,6 +54,8 @@ GitHub repo의 Actions 권한에서 `Read and write permissions`가 허용되어
 - 오늘 공고 수가 비어 있거나 숫자가 아님
 - 직전 날짜의 정상 count 대비 20% 이상 급증/급감
 
+푸시알림 테스트는 Actions 탭에서 `Test Failure Notification` workflow를 수동 실행하면 됩니다. 이 workflow는 데이터 파일을 건드리지 않고 의도적으로 실패합니다.
+
 ## TradingView 차트 페이지
 
 GitHub README는 JavaScript와 iframe 실행을 제한하므로 TradingView 차트를 README 내부에 직접 렌더링할 수는 없습니다. 대신 GitHub Pages에서 `docs/weekly-candles.html`을 배포하고, README 상단에서 주봉 캔들차트 페이지로 연결합니다.

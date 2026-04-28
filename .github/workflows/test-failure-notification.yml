@@ -1,0 +1,14 @@
+name: Test Failure Notification
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fail:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fail intentionally
+        run: |
+          echo "This workflow fails intentionally to test GitHub mobile push notifications."
+          exit 1
