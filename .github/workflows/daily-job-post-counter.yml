@@ -47,5 +47,5 @@ jobs:
             throw "git diff failed with exit code $LASTEXITCODE"
           }
 
-          git commit -m "Update job post counts [skip ci]"
+          git commit -m "Update job post counts"
           git push

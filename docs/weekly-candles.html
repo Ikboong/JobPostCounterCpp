@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JobKorea Weekly Candles</title>
+  <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #1b1f24;
+      --muted: #667085;
+      --border: #d9dee7;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    #chart {
+      width: 100%;
+      height: min(68vh, 680px);
+      min-height: 420px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .error {
+      margin-top: 12px;
+      color: #9f1239;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 640px) {
+      main {
+        width: min(100vw - 20px, 1180px);
+        padding: 16px 0;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+
+      #chart {
+        min-height: 360px;
+        height: 66vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>JobKorea Weekly Candles</h1>
+        <div class="meta" id="meta">Loading data...</div>
+      </div>
+      <div class="meta">Source: data/job_post_counts.csv</div>
+    </header>
+    <div id="chart"></div>
+    <div class="error" id="error"></div>
+  </main>
+
+  <script>
+    const csvUrl = "data/job_post_counts.csv";
+    const meta = document.getElementById("meta");
+    const errorBox = document.getElementById("error");
+    const chartBox = document.getElementById("chart");
+
+    function parseCsv(text) {
+      const lines = text.trim().split(/\r?\n/);
+      const header = lines.shift().split(",");
+      const dateIndex = header.indexOf("DateKST");
+      const countIndex = header.indexOf("JobKoreaCount");
+      if (dateIndex < 0 || countIndex < 0) {
+        throw new Error("CSV columns DateKST and JobKoreaCount are required.");
+      }
+
+      return lines
+        .map((line) => {
+          const cols = line.split(",");
+          const value = Number(cols[countIndex]);
+          return {
+            date: cols[dateIndex],
+            value,
+          };
+        })
+        .filter((row) => row.date && Number.isFinite(row.value))
+        .sort((a, b) => a.date.localeCompare(b.date));
+    }
+
+    function mondayOf(dateText) {
+      const date = new Date(`${dateText}T12:00:00+09:00`);
+      const day = date.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      date.setDate(date.getDate() + diff);
+      return date.toISOString().slice(0, 10);
+    }
+
+    function buildWeekly(rows) {
+      const weeks = new Map();
+      for (const row of rows) {
+        const week = mondayOf(row.date);
+        const existing = weeks.get(week);
+        if (!existing) {
+          weeks.set(week, {
+            time: week,
+            open: row.value,
+            high: row.value,
+            low: row.value,
+            close: row.value,
+          });
+          continue;
+        }
+
+        existing.high = Math.max(existing.high, row.value);
+        existing.low = Math.min(existing.low, row.value);
+        existing.close = row.value;
+      }
+      return Array.from(weeks.values()).sort((a, b) => a.time.localeCompare(b.time));
+    }
+
+    function renderChart(candles) {
+      const chart = LightweightCharts.createChart(chartBox, {
+        layout: {
+          background: { color: "#ffffff" },
+          textColor: "#1b1f24",
+          fontFamily: "Arial, Apple SD Gothic Neo, Malgun Gothic, sans-serif",
+        },
+        grid: {
+          vertLines: { color: "#eef1f5" },
+          horzLines: { color: "#eef1f5" },
+        },
+        rightPriceScale: {
+          borderColor: "#d9dee7",
+        },
+        timeScale: {
+          borderColor: "#d9dee7",
+          timeVisible: true,
+        },
+        crosshair: {
+          mode: LightweightCharts.CrosshairMode.Normal,
+        },
+      });
+
+      const series = chart.addCandlestickSeries({
+        upColor: "#d94841",
+        downColor: "#1f6feb",
+        borderUpColor: "#d94841",
+        borderDownColor: "#1f6feb",
+        wickUpColor: "#d94841",
+        wickDownColor: "#1f6feb",
+      });
+      series.setData(candles);
+      chart.timeScale().fitContent();
+
+      const resizeObserver = new ResizeObserver(() => {
+        chart.applyOptions({
+          width: chartBox.clientWidth,
+          height: chartBox.clientHeight,
+        });
+      });
+      resizeObserver.observe(chartBox);
+    }
+
+    async function main() {
+      const response = await fetch(csvUrl, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Failed to load ${csvUrl}: HTTP ${response.status}`);
+      }
+      const rows = parseCsv(await response.text());
+      const candles = buildWeekly(rows);
+      if (candles.length === 0) {
+        throw new Error("No valid rows found in CSV.");
+      }
+
+      const latest = rows[rows.length - 1];
+      meta.textContent = `Latest: ${latest.date} / ${latest.value.toLocaleString("ko-KR")} postings / ${candles.length} weekly candles`;
+      renderChart(candles);
+    }
+
+    main().catch((error) => {
+      meta.textContent = "Chart failed to load.";
+      errorBox.textContent = error instanceof Error ? error.message : String(error);
+    });
+  </script>
+</body>
+</html>
