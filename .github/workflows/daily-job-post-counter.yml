@@ -1,4 +1,4 @@
-﻿name: Daily Job Post Counter
+name: Daily Job Post Counter
 
 on:
   schedule:
