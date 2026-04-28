@@ -30,6 +30,11 @@ jobs:
         shell: pwsh
         run: ./run.ps1
 
+      - name: Check anomaly
+        id: anomaly
+        shell: pwsh
+        run: ./scripts/check_anomaly.ps1
+
       - name: Commit updated data
         shell: pwsh
         run: |
@@ -49,3 +54,9 @@ jobs:
 
           git commit -m "Update job post counts"
           git push
+
+      - name: Fail on anomaly
+        if: steps.anomaly.outputs.is_anomaly == 'true'
+        shell: pwsh
+        run: |
+          Write-Error "Abnormal JobKorea count detected: ${{ steps.anomaly.outputs.message }}"
