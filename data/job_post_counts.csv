@@ -2,3 +2,4 @@
 2026-04-27 04:52:56,2026-04-27,186993,ok,parsed joblist hdnGICnt,https://www.jobkorea.co.kr/recruit/joblist?menucode=local&localorder=1
 2026-04-28 23:47:45,2026-04-28,200182,ok,parsed joblist hdnGICnt,https://www.jobkorea.co.kr/recruit/joblist?menucode=local&localorder=1
 2026-04-29 12:38:49,2026-04-29,199111,ok,parsed joblist hdnGICnt,https://www.jobkorea.co.kr/recruit/joblist?menucode=local&localorder=1
+2026-04-29 14:08:00,2026-04-29,,error,WinHttpSendRequest failed.,https://www.jobkorea.co.kr/recruit/joblist?menucode=local&localorder=1
