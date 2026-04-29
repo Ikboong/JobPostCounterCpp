@@ -227,8 +227,9 @@
       const header = lines.shift().split(",");
       const dateIndex = header.indexOf("DateKST");
       const countIndex = header.indexOf("JobKoreaCount");
-      if (dateIndex < 0 || countIndex < 0) {
-        throw new Error("CSV columns DateKST and JobKoreaCount are required.");
+      const statusIndex = header.indexOf("JobKoreaStatus");
+      if (dateIndex < 0 || countIndex < 0 || statusIndex < 0) {
+        throw new Error("CSV columns DateKST, JobKoreaCount, and JobKoreaStatus are required.");
       }
 
       return lines
@@ -237,10 +238,11 @@
           const value = Number(cols[countIndex]);
           return {
             date: cols[dateIndex],
+            status: cols[statusIndex],
             value,
           };
         })
-        .filter((row) => row.date && Number.isFinite(row.value))
+        .filter((row) => row.status === "ok" && row.date && Number.isFinite(row.value))
         .sort((a, b) => a.date.localeCompare(b.date));
     }
 

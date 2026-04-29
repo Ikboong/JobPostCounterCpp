@@ -46,6 +46,7 @@ struct WeeklyCandle {
 struct Options {
     std::filesystem::path outputDir;
     bool skipJobKorea = false;
+    bool rewriteXlsxOnly = false;
 };
 
 const std::vector<std::string> kHeaders = {
@@ -888,8 +889,10 @@ Options ParseOptions(int argc, wchar_t** argv) {
             options.outputDir = argv[++i];
         } else if (arg == L"--skip-jobkorea") {
             options.skipJobKorea = true;
+        } else if (arg == L"--rewrite-xlsx-only") {
+            options.rewriteXlsxOnly = true;
         } else if (arg == L"--help" || arg == L"-h" || arg == L"/?") {
-            std::cout << "Usage: JobPostCounter.exe [--output-dir data] [--skip-jobkorea]\n";
+            std::cout << "Usage: JobPostCounter.exe [--output-dir data] [--skip-jobkorea] [--rewrite-xlsx-only]\n";
             std::exit(0);
         } else {
             throw std::runtime_error("Unknown or incomplete option: " + ToUtf8(arg));
@@ -929,6 +932,12 @@ int wmain(int argc, wchar_t** argv) {
         const std::filesystem::path xlsxPath = options.outputDir / "job_post_counts.xlsx";
 
         auto records = ReadCsv(csvPath);
+        if (options.rewriteXlsxOnly) {
+            WriteXlsx(xlsxPath, records);
+            std::cout << "Rewritten: " << xlsxPath.string() << "\n";
+            return 0;
+        }
+
         Record rec = BuildRecord(options);
         records.push_back(rec);
 
