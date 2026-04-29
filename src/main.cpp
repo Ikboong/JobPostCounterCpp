@@ -2,6 +2,7 @@
 #include <winhttp.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstdint>
 #include <ctime>
@@ -13,6 +14,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -204,6 +206,29 @@ std::string HttpGet(const std::string& url, const std::wstring& acceptHeader = L
     return body;
 }
 
+std::string HttpGetWithRetry(
+    const std::string& url,
+    int maxAttempts = 3,
+    int initialDelayMs = 1500,
+    const std::wstring& acceptHeader = L"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8") {
+    std::string lastError;
+    for (int attempt = 1; attempt <= maxAttempts; ++attempt) {
+        try {
+            return HttpGet(url, acceptHeader);
+        } catch (const std::exception& ex) {
+            lastError = ex.what();
+            if (attempt == maxAttempts) {
+                break;
+            }
+            const int delayMs = initialDelayMs * attempt;
+            std::cerr << "HTTP attempt " << attempt << " failed: " << lastError
+                      << ". Retrying in " << delayMs << "ms...\n";
+            std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
+        }
+    }
+    throw std::runtime_error("HTTP failed after " + std::to_string(maxAttempts) + " attempts: " + lastError);
+}
+
 std::string DigitsOnly(std::string value) {
     value.erase(std::remove_if(value.begin(), value.end(), [](unsigned char ch) {
         return ch < '0' || ch > '9';
@@ -225,7 +250,7 @@ SiteResult FetchJobKorea() {
     result.sourceUrl = "https://www.jobkorea.co.kr/recruit/joblist?menucode=local&localorder=1";
 
     try {
-        const std::string html = HttpGet(result.sourceUrl);
+        const std::string html = HttpGetWithRetry(result.sourceUrl);
         std::string count = DigitsOnly(FirstRegexGroup(html, std::regex("id=\"hdnGICnt\"\\s+value=\"([^\"]+)\"", std::regex::icase)));
         if (count.empty()) {
             count = DigitsOnly(FirstRegexGroup(html, std::regex("hdnGICnt[^>]*value=\"([^\"]+)\"", std::regex::icase)));
