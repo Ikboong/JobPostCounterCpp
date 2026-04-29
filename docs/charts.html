@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JobKorea Charts</title>
+  <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #1b1f24;
+      --muted: #667085;
+      --border: #d9dee7;
+      --grid: #eef1f5;
+      --button-bg: #ffffff;
+      --button-hover: #eef1f5;
+      --button-active: #1f6feb;
+      --button-active-text: #ffffff;
+      --line: #0969da;
+      --error: #9f1239;
+    }
+
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #0d1117;
+      --panel: #161b22;
+      --text: #f0f6fc;
+      --muted: #8b949e;
+      --border: #30363d;
+      --grid: #21262d;
+      --button-bg: #21262d;
+      --button-hover: #30363d;
+      --button-active: #58a6ff;
+      --button-active-text: #0d1117;
+      --line: #58a6ff;
+      --error: #ff7b72;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    .toolbar,
+    .view-switch {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .view-switch {
+      margin-bottom: 12px;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    button {
+      min-width: 92px;
+      min-height: 36px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--button-bg);
+      color: var(--text);
+      cursor: pointer;
+      font: inherit;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    button:hover {
+      background: var(--button-hover);
+    }
+
+    button[aria-pressed="true"] {
+      border-color: var(--button-active);
+      background: var(--button-active);
+      color: var(--button-active-text);
+    }
+
+    #chart {
+      width: 100%;
+      height: min(68vh, 680px);
+      min-height: 420px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .error {
+      margin-top: 12px;
+      color: var(--error);
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 640px) {
+      main {
+        width: min(100vw - 20px, 1180px);
+        padding: 16px 0;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+
+      #chart {
+        min-height: 360px;
+        height: 66vh;
+      }
+
+      .toolbar,
+      .view-switch {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+  </style>
+  <script>
+    const storedTheme = localStorage.getItem("theme");
+    const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.theme = storedTheme || systemTheme;
+  </script>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>JobKorea Charts</h1>
+        <div class="meta" id="meta">Loading data...</div>
+      </div>
+      <div class="toolbar">
+        <div class="meta">Source: data/job_post_counts.csv</div>
+        <button type="button" id="theme-toggle" aria-label="Toggle dark mode">Dark</button>
+      </div>
+    </header>
+    <div class="view-switch" aria-label="Chart view">
+      <button type="button" id="daily-view" aria-pressed="true">Daily line</button>
+      <button type="button" id="weekly-view" aria-pressed="false">Weekly candle</button>
+    </div>
+    <div id="chart"></div>
+    <div class="error" id="error"></div>
+  </main>
+
+  <script>
+    const csvUrl = "data/job_post_counts.csv";
+    const meta = document.getElementById("meta");
+    const errorBox = document.getElementById("error");
+    const chartBox = document.getElementById("chart");
+    const themeToggle = document.getElementById("theme-toggle");
+    const dailyView = document.getElementById("daily-view");
+    const weeklyView = document.getElementById("weekly-view");
+
+    let chart;
+    let resizeObserver;
+    let rows = [];
+    let activeView = "daily";
+
+    function currentTheme() {
+      return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    }
+
+    function chartTheme(theme) {
+      if (theme === "dark") {
+        return {
+          background: "#161b22",
+          text: "#f0f6fc",
+          grid: "#21262d",
+          border: "#30363d",
+          line: "#58a6ff",
+        };
+      }
+
+      return {
+        background: "#ffffff",
+        text: "#1b1f24",
+        grid: "#eef1f5",
+        border: "#d9dee7",
+        line: "#0969da",
+      };
+    }
+
+    function updateThemeButton() {
+      themeToggle.textContent = currentTheme() === "dark" ? "Light" : "Dark";
+    }
+
+    function updateViewButtons() {
+      dailyView.setAttribute("aria-pressed", activeView === "daily" ? "true" : "false");
+      weeklyView.setAttribute("aria-pressed", activeView === "weekly" ? "true" : "false");
+    }
+
+    function createChart() {
+      const theme = chartTheme(currentTheme());
+      return LightweightCharts.createChart(chartBox, {
+        layout: {
+          background: { color: theme.background },
+          textColor: theme.text,
+          fontFamily: "Arial, Apple SD Gothic Neo, Malgun Gothic, sans-serif",
+        },
+        grid: {
+          vertLines: { color: theme.grid },
+          horzLines: { color: theme.grid },
+        },
+        rightPriceScale: {
+          borderColor: theme.border,
+        },
+        timeScale: {
+          borderColor: theme.border,
+          timeVisible: true,
+        },
+        crosshair: {
+          mode: LightweightCharts.CrosshairMode.Normal,
+        },
+      });
+    }
+
+    function resetChart() {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+        resizeObserver = undefined;
+      }
+      if (chart) {
+        chart.remove();
+      }
+      chart = createChart();
+      resizeObserver = new ResizeObserver(() => {
+        chart.applyOptions({
+          width: chartBox.clientWidth,
+          height: chartBox.clientHeight,
+        });
+      });
+      resizeObserver.observe(chartBox);
+      return chart;
+    }
+
+    function parseCsv(text) {
+      const lines = text.trim().split(/\r?\n/);
+      const header = lines.shift().split(",").map((name) => name.replace(/^\uFEFF/, ""));
+      const dateIndex = header.indexOf("DateKST");
+      const countIndex = header.indexOf("JobKoreaCount");
+      const statusIndex = header.indexOf("JobKoreaStatus");
+      if (dateIndex < 0 || countIndex < 0 || statusIndex < 0) {
+        throw new Error("CSV columns DateKST, JobKoreaCount, and JobKoreaStatus are required.");
+      }
+
+      return lines
+        .map((line) => {
+          const cols = line.split(",");
+          const value = Number(cols[countIndex]);
+          return {
+            date: cols[dateIndex],
+            status: cols[statusIndex],
+            value,
+          };
+        })
+        .filter((row) => row.status === "ok" && row.date && Number.isFinite(row.value))
+        .sort((a, b) => a.date.localeCompare(b.date));
+    }
+
+    function buildDaily(sourceRows) {
+      const daily = new Map();
+      for (const row of sourceRows) {
+        daily.set(row.date, {
+          time: row.date,
+          value: row.value,
+        });
+      }
+      return Array.from(daily.values()).sort((a, b) => a.time.localeCompare(b.time));
+    }
+
+    function mondayOf(dateText) {
+      const date = new Date(`${dateText}T12:00:00+09:00`);
+      const day = date.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      date.setDate(date.getDate() + diff);
+      return date.toISOString().slice(0, 10);
+    }
+
+    function buildWeekly(dailyRows) {
+      const weeks = new Map();
+      for (const row of dailyRows) {
+        const week = mondayOf(row.time);
+        const existing = weeks.get(week);
+        if (!existing) {
+          weeks.set(week, {
+            time: week,
+            open: row.value,
+            high: row.value,
+            low: row.value,
+            close: row.value,
+          });
+          continue;
+        }
+
+        existing.high = Math.max(existing.high, row.value);
+        existing.low = Math.min(existing.low, row.value);
+        existing.close = row.value;
+      }
+      return Array.from(weeks.values()).sort((a, b) => a.time.localeCompare(b.time));
+    }
+
+    function renderDaily() {
+      const dailyRows = buildDaily(rows);
+      if (dailyRows.length === 0) {
+        throw new Error("No valid daily rows found in CSV.");
+      }
+
+      const theme = chartTheme(currentTheme());
+      const nextChart = resetChart();
+      const series = nextChart.addLineSeries({
+        color: theme.line,
+        lineWidth: 2,
+        priceLineVisible: false,
+      });
+      series.setData(dailyRows);
+      nextChart.timeScale().fitContent();
+
+      const latest = dailyRows[dailyRows.length - 1];
+      meta.textContent = `Latest: ${latest.time} / ${latest.value.toLocaleString("ko-KR")} postings / ${dailyRows.length} daily points`;
+    }
+
+    function renderWeekly() {
+      const dailyRows = buildDaily(rows);
+      const candles = buildWeekly(dailyRows);
+      if (candles.length === 0) {
+        throw new Error("No valid weekly candles found in CSV.");
+      }
+
+      const nextChart = resetChart();
+      const series = nextChart.addCandlestickSeries({
+        upColor: "#d94841",
+        downColor: "#1f6feb",
+        borderUpColor: "#d94841",
+        borderDownColor: "#1f6feb",
+        wickUpColor: "#d94841",
+        wickDownColor: "#1f6feb",
+      });
+      series.setData(candles);
+      nextChart.timeScale().fitContent();
+
+      const latest = dailyRows[dailyRows.length - 1];
+      meta.textContent = `Latest: ${latest.time} / ${latest.value.toLocaleString("ko-KR")} postings / ${candles.length} weekly candles`;
+    }
+
+    function renderActiveView() {
+      errorBox.textContent = "";
+      updateViewButtons();
+      if (activeView === "weekly") {
+        renderWeekly();
+      } else {
+        renderDaily();
+      }
+    }
+
+    themeToggle.addEventListener("click", () => {
+      const nextTheme = currentTheme() === "dark" ? "light" : "dark";
+      document.documentElement.dataset.theme = nextTheme;
+      localStorage.setItem("theme", nextTheme);
+      updateThemeButton();
+      renderActiveView();
+    });
+
+    dailyView.addEventListener("click", () => {
+      activeView = "daily";
+      renderActiveView();
+    });
+
+    weeklyView.addEventListener("click", () => {
+      activeView = "weekly";
+      renderActiveView();
+    });
+
+    updateThemeButton();
+    updateViewButtons();
+
+    async function main() {
+      const response = await fetch(csvUrl, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Failed to load ${csvUrl}: HTTP ${response.status}`);
+      }
+      rows = parseCsv(await response.text());
+      renderActiveView();
+    }
+
+    main().catch((error) => {
+      meta.textContent = "Chart failed to load.";
+      errorBox.textContent = error instanceof Error ? error.message : String(error);
+    });
+  </script>
+</body>
+</html>
