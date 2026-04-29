@@ -8,6 +8,7 @@ on:
       - "docs/**"
       - "data/**"
       - ".github/workflows/pages.yml"
+      - ".github/workflows/daily-job-post-counter.yml"
   workflow_dispatch:
 
 permissions:

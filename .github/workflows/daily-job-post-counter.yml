@@ -2,11 +2,13 @@ name: Daily Job Post Counter
 
 on:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "17 0 * * *"
   workflow_dispatch:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: daily-job-post-counter
@@ -60,3 +62,37 @@ jobs:
         shell: pwsh
         run: |
           Write-Error "Abnormal JobKorea count detected: ${{ steps.anomaly.outputs.message }}"
+
+  deploy-pages:
+    needs: update
+    if: ${{ always() && needs.update.result != 'cancelled' }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Pull latest data
+        run: git pull --ff-only origin main
+
+      - name: Prepare site data
+        run: |
+          mkdir -p docs/data
+          cp data/job_post_counts.csv docs/data/job_post_counts.csv
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
