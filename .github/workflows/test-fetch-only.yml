@@ -1,0 +1,29 @@
+name: Test JobKorea Fetch Only
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/main.cpp"
+      - ".github/workflows/test-fetch-only.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build
+        shell: pwsh
+        run: ./build.ps1
+
+      - name: Print JobKorea count without recording
+        shell: pwsh
+        run: ./build/Release/JobPostCounter.exe --print-only

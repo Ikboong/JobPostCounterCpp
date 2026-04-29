@@ -49,6 +49,7 @@ struct Options {
     std::filesystem::path outputDir;
     bool skipJobKorea = false;
     bool rewriteXlsxOnly = false;
+    bool printOnly = false;
 };
 
 const std::vector<std::string> kHeaders = {
@@ -916,8 +917,10 @@ Options ParseOptions(int argc, wchar_t** argv) {
             options.skipJobKorea = true;
         } else if (arg == L"--rewrite-xlsx-only") {
             options.rewriteXlsxOnly = true;
+        } else if (arg == L"--print-only") {
+            options.printOnly = true;
         } else if (arg == L"--help" || arg == L"-h" || arg == L"/?") {
-            std::cout << "Usage: JobPostCounter.exe [--output-dir data] [--skip-jobkorea] [--rewrite-xlsx-only]\n";
+            std::cout << "Usage: JobPostCounter.exe [--output-dir data] [--skip-jobkorea] [--rewrite-xlsx-only] [--print-only]\n";
             std::exit(0);
         } else {
             throw std::runtime_error("Unknown or incomplete option: " + ToUtf8(arg));
@@ -951,6 +954,17 @@ Record BuildRecord(const Options& options) {
 int wmain(int argc, wchar_t** argv) {
     try {
         const Options options = ParseOptions(argc, argv);
+        if (options.printOnly) {
+            const Record rec = BuildRecord(options);
+            std::cout << "TimestampKST: " << rec.timestampKst << "\n";
+            std::cout << "DateKST: " << rec.dateKst << "\n";
+            std::cout << "JobKoreaStatus: " << rec.jobKoreaStatus << "\n";
+            std::cout << "JobKoreaCount: " << rec.jobKoreaCount << "\n";
+            std::cout << "JobKoreaMessage: " << rec.jobKoreaMessage << "\n";
+            std::cout << "JobKoreaSource: " << rec.jobKoreaSource << "\n";
+            return (rec.jobKoreaStatus == "ok" && IsNumeric(rec.jobKoreaCount)) ? 0 : 1;
+        }
+
         std::filesystem::create_directories(options.outputDir);
 
         const std::filesystem::path csvPath = options.outputDir / "job_post_counts.csv";
