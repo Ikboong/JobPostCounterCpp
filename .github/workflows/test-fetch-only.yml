@@ -1,12 +1,6 @@
 name: Test JobKorea Fetch Only
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "src/main.cpp"
-      - ".github/workflows/test-fetch-only.yml"
   workflow_dispatch:
 
 permissions:
