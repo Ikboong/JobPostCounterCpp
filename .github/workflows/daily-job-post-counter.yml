@@ -30,6 +30,12 @@ jobs:
         shell: pwsh
         run: ./run.ps1
 
+      - name: Keep one record per day
+        shell: pwsh
+        run: |
+          ./scripts/normalize_daily_records.ps1
+          ./build/Release/JobPostCounter.exe --rewrite-xlsx-only
+
       - name: Check anomaly
         id: anomaly
         shell: pwsh
