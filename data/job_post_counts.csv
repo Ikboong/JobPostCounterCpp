@@ -3,4 +3,4 @@
 2026-04-28 23:47:45,2026-04-28,200182,ok,parsed joblist hdnGICnt,https://www.jobkorea.co.kr/recruit/joblist?menucode=local&localorder=1
 2026-04-29 12:38:49,2026-04-29,199111,ok,parsed joblist hdnGICnt,https://www.jobkorea.co.kr/recruit/joblist?menucode=local&localorder=1
 2026-04-30 09:01:31,2026-04-30,197667,ok,parsed joblist hdnGICnt,https://www.jobkorea.co.kr/recruit/joblist?menucode=local&localorder=1
-2026-05-01 09:01:50,2026-05-01,,error,HTTP failed after 3 attempts: WinHttpSendRequest failed.,https://www.jobkorea.co.kr/recruit/joblist?menucode=local&localorder=1
+2026-05-01 11:53:50,2026-05-01,191130,ok,parsed joblist hdnGICnt,https://www.jobkorea.co.kr/recruit/joblist?menucode=local&localorder=1
