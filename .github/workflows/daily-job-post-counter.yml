@@ -1,6 +1,11 @@
 name: Daily Job Post Counter
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/daily-job-post-counter.yml"
   workflow_dispatch:
 
 permissions:
