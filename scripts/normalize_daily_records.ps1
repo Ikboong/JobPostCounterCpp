@@ -17,6 +17,35 @@ function ConvertTo-CsvField {
     return $Value
 }
 
+function Get-RecordSortKey {
+    param($Record)
+
+    $timestamp = [string]$Record.Row.TimestampKST
+    if ($timestamp -match '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$') {
+        return $timestamp
+    }
+
+    return "9999-12-31 23:59:59"
+}
+
+function Select-DailyRecord {
+    param([object[]]$Records)
+
+    $okRecords = @($Records | Where-Object {
+        $_.Row.JobKoreaStatus -eq "ok" -and
+        -not [string]::IsNullOrWhiteSpace([string]$_.Row.JobKoreaCount)
+    })
+
+    $candidates = $Records
+    if ($okRecords.Count -gt 0) {
+        $candidates = $okRecords
+    }
+
+    return @($candidates | Sort-Object `
+        @{ Expression = { Get-RecordSortKey $_ } }, `
+        @{ Expression = { $_.Index } })[0].Row
+}
+
 if (-not (Test-Path -LiteralPath $CsvPath)) {
     Write-Host "No CSV file to normalize: $CsvPath"
     exit 0
@@ -38,30 +67,32 @@ $headers = @(
 )
 
 $byDate = [ordered]@{}
-$removed = 0
+$rowIndex = 0
 
 foreach ($row in $rows) {
     $date = [string]$row.DateKST
     if ([string]::IsNullOrWhiteSpace($date)) {
-        $date = "__row_$($byDate.Count)_$removed"
+        $date = "__row_$rowIndex"
     }
 
     if (-not $byDate.Contains($date)) {
-        $byDate[$date] = $row
-        continue
+        $byDate[$date] = @()
     }
 
-    $existing = $byDate[$date]
-    if ($existing.JobKoreaStatus -ne "ok" -and $row.JobKoreaStatus -eq "ok") {
-        $byDate[$date] = $row
+    $byDate[$date] += [pscustomobject]@{
+        Row = $row
+        Index = $rowIndex
     }
-    ++$removed
+    ++$rowIndex
 }
+
+$removed = $rows.Count - $byDate.Count
 
 $lines = New-Object System.Collections.Generic.List[string]
 $lines.Add(($headers | ForEach-Object { ConvertTo-CsvField $_ }) -join ",")
 
-foreach ($row in $byDate.Values) {
+foreach ($records in $byDate.Values) {
+    $row = Select-DailyRecord -Records @($records)
     $fields = foreach ($header in $headers) {
         ConvertTo-CsvField ([string]$row.$header)
     }
