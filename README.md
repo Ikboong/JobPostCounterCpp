@@ -1,6 +1,8 @@
 ﻿# JobPostCounterCpp
 
-[TradingView 차트 보기](https://ikboong.github.io/JobPostCounterCpp/charts.html)
+[JobKorea TradingView 차트 보기](https://ikboong.github.io/JobPostCounterCpp/charts.html)
+
+[Loose Grown Diamond 가격 차트 보기](https://ikboong.github.io/JobPostCounterCpp/loosegrown.html)
 
 C++로 잡코리아 지역별 채용정보의 일반 채용공고 수를 측정해 누적 CSV와 XLSX 파일을 만듭니다. XLSX에는 일별 추세 그래프와 주봉 캔들차트가 같이 생성됩니다.
 
