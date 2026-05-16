@@ -42,4 +42,4 @@ C++로 Loose Grown Diamond 검색 조건의 최저 표시가를 매일 누적합
 
 GitHub Actions:
 
-repo 루트의 `.github/workflows/daily-loosegrown-price-tracker.yml`은 매일 09:00 KST에 실행되고, CSV/SVG가 바뀌면 자동 commit/push합니다. 저장소 Actions 권한에서 `Read and write permissions`가 허용되어 있어야 합니다.
+repo 루트의 `.github/workflows/daily-loosegrown-price-tracker.yml`은 매일 09:00 KST에 실행되고, CSV/HTML 차트가 바뀌면 자동 commit/push합니다. 저장소 Actions 권한에서 `Read and write permissions`가 허용되어 있어야 합니다.
