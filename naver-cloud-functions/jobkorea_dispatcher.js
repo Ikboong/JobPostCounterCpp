@@ -128,7 +128,7 @@ async function dispatchWorkflow(config, inputs) {
         "Authorization": `Bearer ${config.githubToken}`,
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "JobPostCounter-NaverCloudFunctions",
+        "User-Agent": "JobPostCounter-Dispatcher",
         "Content-Type": "application/json",
         "Content-Length": Buffer.byteLength(body),
       },
@@ -189,5 +189,27 @@ async function main(params = {}) {
   };
 }
 
+function normalizeLambdaEvent(event = {}) {
+  let bodyParams = {};
+  if (typeof event.body === "string" && event.body.trim()) {
+    try {
+      bodyParams = JSON.parse(event.body);
+    } catch (_) {
+      bodyParams = {};
+    }
+  }
+
+  return {
+    ...event,
+    ...(event.queryStringParameters || {}),
+    ...bodyParams,
+  };
+}
+
+async function handler(event = {}) {
+  return main(normalizeLambdaEvent(event));
+}
+
 global.main = main;
 exports.main = main;
+exports.handler = handler;

@@ -1,6 +1,6 @@
-# Naver Cloud Functions Dispatcher
+# Cloud Function Dispatcher
 
-This action measures the JobKorea posting count from a Korea-region Naver Cloud Functions runtime, then dispatches the GitHub workflow that records the measured value.
+This action measures the JobKorea posting count from a Korea-region serverless runtime, then dispatches the GitHub workflow that records the measured value.
 
 ## Required secret/default parameter
 
@@ -32,3 +32,26 @@ Minimum GitHub permissions:
 If the console asks for a raw cron expression in UTC, use `0 0 * * *`, `10 0 * * *`, and `30 0 * * *` instead.
 
 The GitHub side keeps one row per `DateKST`, preferring the earliest successful measurement for that date.
+
+## AWS Lambda setup
+
+Use this when Naver Cloud Functions requires VPC/NAT Gateway for outbound internet.
+
+1. Open the AWS console and select the Seoul region: `Asia Pacific (Seoul) ap-northeast-2`.
+2. Go to Lambda and create a function:
+   - Author from scratch
+   - Function name: `jobkorea-dispatcher`
+   - Runtime: Node.js 22.x
+   - Architecture: x86_64
+   - Do not enable VPC
+3. Paste `jobkorea_dispatcher.js` into `index.js`.
+4. Set the Lambda handler to `index.handler`.
+5. Add environment variables:
+   - `GITHUB_TOKEN`: GitHub token with Actions read/write on this repository
+   - `DRY_RUN`: `true` for the first test
+6. Run a Lambda test event with `{}` and confirm `status: ok`.
+7. Change `DRY_RUN` to `false`.
+8. Add EventBridge Scheduler schedules for KST:
+   - daily 09:00
+   - daily 09:10
+   - daily 09:30
