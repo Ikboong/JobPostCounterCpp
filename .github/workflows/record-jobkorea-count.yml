@@ -1,7 +1,38 @@
-name: Daily Job Post Counter
+name: Record External JobKorea Count
 
 on:
   workflow_dispatch:
+    inputs:
+      timestamp_kst:
+        description: "KST timestamp, yyyy-MM-dd HH:mm:ss"
+        required: true
+        type: string
+      date_kst:
+        description: "KST date, yyyy-MM-dd"
+        required: true
+        type: string
+      count:
+        description: "JobKorea posting count. Leave empty when status is error."
+        required: false
+        type: string
+      status:
+        description: "Measurement status"
+        required: true
+        default: "ok"
+        type: choice
+        options:
+          - ok
+          - error
+      message:
+        description: "Measurement detail"
+        required: false
+        default: "parsed joblist hdnGICnt"
+        type: string
+      source:
+        description: "Measurement source URL"
+        required: false
+        default: "https://www.jobkorea.co.kr/recruit/joblist?menucode=local&localorder=1"
+        type: string
 
 permissions:
   contents: write
@@ -29,9 +60,23 @@ jobs:
         shell: pwsh
         run: ./build.ps1
 
-      - name: Measure JobKorea count
+      - name: Record external JobKorea count
         shell: pwsh
-        run: ./run.ps1
+        env:
+          INPUT_TIMESTAMP_KST: ${{ inputs.timestamp_kst }}
+          INPUT_DATE_KST: ${{ inputs.date_kst }}
+          INPUT_COUNT: ${{ inputs.count }}
+          INPUT_STATUS: ${{ inputs.status }}
+          INPUT_MESSAGE: ${{ inputs.message }}
+          INPUT_SOURCE: ${{ inputs.source }}
+        run: |
+          ./scripts/record_external_count.ps1 `
+            -TimestampKst $env:INPUT_TIMESTAMP_KST `
+            -DateKst $env:INPUT_DATE_KST `
+            -JobKoreaCount $env:INPUT_COUNT `
+            -JobKoreaStatus $env:INPUT_STATUS `
+            -JobKoreaMessage $env:INPUT_MESSAGE `
+            -JobKoreaSource $env:INPUT_SOURCE
 
       - name: Keep one record per day
         shell: pwsh
@@ -61,7 +106,7 @@ jobs:
             throw "git diff failed with exit code $LASTEXITCODE"
           }
 
-          git commit -m "Update job post counts"
+          git commit -m "Record external JobKorea count"
           git push
 
       - name: Fail on anomaly
