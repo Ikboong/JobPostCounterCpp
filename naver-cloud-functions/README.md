@@ -44,7 +44,7 @@ Use this when Naver Cloud Functions requires VPC/NAT Gateway for outbound intern
    - Runtime: Node.js 22.x
    - Architecture: x86_64
    - Do not enable VPC
-3. Paste `jobkorea_dispatcher.js` into `index.js`.
+3. Paste `aws-lambda/index.mjs` into the Lambda console's `index.mjs`.
 4. Set the Lambda handler to `index.handler`.
 5. Add environment variables:
    - `GITHUB_TOKEN`: GitHub token with Actions read/write on this repository
