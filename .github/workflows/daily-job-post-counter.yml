@@ -23,6 +23,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          ref: main
           persist-credentials: true
 
       - name: Build
@@ -62,7 +63,7 @@ jobs:
           }
 
           git commit -m "Update job post counts"
-          git push
+          ./scripts/push_with_retry.ps1
 
       - name: Fail on anomaly
         if: steps.anomaly.outputs.is_anomaly == 'true'

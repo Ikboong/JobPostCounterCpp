@@ -170,6 +170,7 @@
     <div class="view-switch" aria-label="Chart view">
       <button type="button" id="daily-view" aria-pressed="true">Daily line</button>
       <button type="button" id="weekly-view" aria-pressed="false">Weekly candle</button>
+      <button type="button" id="monthly-view" aria-pressed="false">Monthly candle</button>
     </div>
     <div id="chart"></div>
     <div class="error" id="error"></div>
@@ -183,6 +184,7 @@
     const themeToggle = document.getElementById("theme-toggle");
     const dailyView = document.getElementById("daily-view");
     const weeklyView = document.getElementById("weekly-view");
+    const monthlyView = document.getElementById("monthly-view");
 
     let chart;
     let resizeObserver;
@@ -221,6 +223,7 @@
     function updateViewButtons() {
       dailyView.setAttribute("aria-pressed", activeView === "daily" ? "true" : "false");
       weeklyView.setAttribute("aria-pressed", activeView === "weekly" ? "true" : "false");
+      monthlyView.setAttribute("aria-pressed", activeView === "monthly" ? "true" : "false");
     }
 
     function pad2(value) {
@@ -405,17 +408,26 @@
       return date.toISOString().slice(0, 10);
     }
 
-    function buildWeekly(dailyRows) {
-      const weeks = new Map();
+    function firstOfMonth(dateText) {
+      const parts = parseKstDate(dateText);
+      if (!parts) {
+        return "";
+      }
+
+      return `${parts.year}-${pad2(parts.month)}-01`;
+    }
+
+    function buildCandles(dailyRows, periodOf) {
+      const periods = new Map();
       for (const row of dailyRows) {
-        const week = mondayOf(row.date);
-        if (!week) {
+        const period = periodOf(row.date);
+        if (!period) {
           continue;
         }
-        const existing = weeks.get(week);
+        const existing = periods.get(period);
         if (!existing) {
-          weeks.set(week, {
-            time: week,
+          periods.set(period, {
+            time: period,
             open: row.value,
             high: row.value,
             low: row.value,
@@ -428,7 +440,15 @@
         existing.low = Math.min(existing.low, row.value);
         existing.close = row.value;
       }
-      return Array.from(weeks.values()).sort((a, b) => a.time.localeCompare(b.time));
+      return Array.from(periods.values()).sort((a, b) => a.time.localeCompare(b.time));
+    }
+
+    function buildWeekly(dailyRows) {
+      return buildCandles(dailyRows, mondayOf);
+    }
+
+    function buildMonthly(dailyRows) {
+      return buildCandles(dailyRows, firstOfMonth);
     }
 
     function renderDaily() {
@@ -451,11 +471,9 @@
       meta.textContent = `Latest: ${latest.label} KST / ${latest.value.toLocaleString("ko-KR")} postings / ${dailyRows.length} daily points`;
     }
 
-    function renderWeekly() {
-      const dailyRows = buildDaily(rows);
-      const candles = buildWeekly(dailyRows);
+    function renderCandles(dailyRows, candles, periodName) {
       if (candles.length === 0) {
-        throw new Error("No valid weekly candles found in CSV.");
+        throw new Error(`No valid ${periodName} candles found in CSV.`);
       }
 
       const nextChart = resetChart();
@@ -471,7 +489,17 @@
       nextChart.timeScale().fitContent();
 
       const latest = dailyRows[dailyRows.length - 1];
-      meta.textContent = `Latest: ${latest.label} KST / ${latest.value.toLocaleString("ko-KR")} postings / ${candles.length} weekly candles`;
+      meta.textContent = `Latest: ${latest.label} KST / ${latest.value.toLocaleString("ko-KR")} postings / ${candles.length} ${periodName} candles`;
+    }
+
+    function renderWeekly() {
+      const dailyRows = buildDaily(rows);
+      renderCandles(dailyRows, buildWeekly(dailyRows), "weekly");
+    }
+
+    function renderMonthly() {
+      const dailyRows = buildDaily(rows);
+      renderCandles(dailyRows, buildMonthly(dailyRows), "monthly");
     }
 
     function renderActiveView() {
@@ -479,6 +507,8 @@
       updateViewButtons();
       if (activeView === "weekly") {
         renderWeekly();
+      } else if (activeView === "monthly") {
+        renderMonthly();
       } else {
         renderDaily();
       }
@@ -499,6 +529,11 @@
 
     weeklyView.addEventListener("click", () => {
       activeView = "weekly";
+      renderActiveView();
+    });
+
+    monthlyView.addEventListener("click", () => {
+      activeView = "monthly";
       renderActiveView();
     });
 
