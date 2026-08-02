@@ -65,7 +65,7 @@ GitHub repo의 Actions 권한에서 `Read and write permissions`가 허용되어
 
 GitHub README는 JavaScript와 iframe 실행을 제한하므로 TradingView 차트를 README 내부에 직접 렌더링할 수는 없습니다. 대신 GitHub Pages에서 `docs/charts.html`을 배포하고, README 상단에서 차트 페이지로 연결합니다.
 
-차트 페이지는 기본으로 일별 line chart를 보여주고, 주봉 캔들차트는 페이지 안의 `Weekly candle` 버튼으로 전환할 수 있습니다.
+차트 페이지는 기본으로 일별 line chart를 보여주고, 페이지 안의 `Weekly candle`과 `Monthly candle` 버튼으로 주봉·월봉 캔들차트를 전환할 수 있습니다.
 
 처음 한 번은 repo의 `Settings > Pages`에서 Source를 `GitHub Actions`로 설정한 뒤 `Publish Pages` workflow를 실행하면 됩니다.
 
